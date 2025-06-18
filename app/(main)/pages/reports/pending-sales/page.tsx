@@ -15,6 +15,10 @@ import { useDebounce } from 'primereact/hooks';
 import { ReportsService } from '@/demo/service/reports.service';
 import { SalesOrderService } from '@/demo/service/sales-order.service';
 import FullPageLoader from '@/demo/components/FullPageLoader';
+import { Avatar } from 'primereact/avatar';
+import { OverlayPanel } from 'primereact/overlaypanel';
+import { useLongPress } from '@/demo/hooks/useLongPress';
+import useMobileDetect from '@/demo/hooks/useMobileDetect';
 
 interface JobOrderStatus {
   id: string;
@@ -71,7 +75,20 @@ const PendingSalesReport = () => {
   const [itemToDelete, setItemToDelete] = useState<PendingOrderItem | null>(null);
   const observer = useRef<IntersectionObserver | null>(null);
   const lastOrderRef = useRef<HTMLDivElement>(null);
+  const actionPanelRef = useRef<OverlayPanel | null>(null);
 
+  const { onPointerDown, onPointerUp } = useLongPress(
+    (e: {}, item: PendingOrderItem) => {
+      setSelectedItem(item);
+      actionPanelRef.current?.show(e);
+    },
+    (e: {}, item: PendingOrderItem) => {
+      setSelectedItem(item);
+      viewSalesOrder(item.order_id)
+    },
+    600
+  );
+  const isMobile = useMobileDetect();
   const availableStatuses = [
     { id: 1, name: 'Pending' },
     { id: 2, name: 'In Progress' },
@@ -251,7 +268,7 @@ const PendingSalesReport = () => {
   };
 
   const viewSalesOrder = (orderId: string) => {
-    router.push(`/pages/orders/sales-order?id=${orderId}&source=pending-sales`);
+    router.push(`/pages/orders/sales-order/${orderId}`);
   };
 
   if (loading && !isFetchingMore && !debouncedSearchTerm) {
@@ -265,36 +282,40 @@ const PendingSalesReport = () => {
         <div className="grid">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="col-12 md:col-6 lg:col-4">
-              <Card className="h-full">
+              <Card className="shadow-2 border-round-xl p-3">
+                <div className="flex justify-content-between align-items-center mb-3">
+                  <div className="flex align-items-center gap-2">
+                    <Skeleton shape="circle" size="3rem" />
+                    <div className="flex flex-column gap-1">
+                      <Skeleton width="8rem" height="1rem" />
+                      <Skeleton width="6rem" height="0.75rem" />
+                    </div>
+                  </div>
+                  <Skeleton width="4rem" height="1.5rem" />
+                </div>
+
+                <Skeleton width="10rem" height="1.25rem" className="mb-2" />
+                <Skeleton width="6rem" height="1rem" className="mb-3" />
+
+                <Divider className="my-2" />
+
+                <div className="flex flex-column gap-2 mb-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex justify-content-between">
+                      <Skeleton width="7rem" height="1rem" />
+                      <Skeleton width="6rem" height="1rem" />
+                    </div>
+                  ))}
+                </div>
+
+                <Divider className="my-2" />
+
                 <div className="flex flex-column gap-2">
-                  <div className="flex justify-content-between align-items-center">
-                    <Skeleton width="8rem" height="1.25rem" />
-                    <Skeleton width="5rem" height="1.25rem" />
-                  </div>
-  
-                  <Divider className="my-2" />
-  
-                  <div className="flex flex-column gap-1">
-                    <div className="flex justify-content-between">
-                      <Skeleton width="6rem" height="1rem" />
-                      <Skeleton width="7rem" height="1rem" />
-                    </div>
-                    <div className="flex justify-content-between">
-                      <Skeleton width="6rem" height="1rem" />
-                      <Skeleton width="7rem" height="1rem" />
-                    </div>
-                    <div className="flex justify-content-between">
-                      <Skeleton width="6rem" height="1rem" />
-                      <Skeleton width="7rem" height="1rem" />
-                    </div>
-                  </div>
-  
-                  <Divider className="my-2" />
-  
+                  <Skeleton width="100%" height="2rem" />
+                  <Skeleton width="100%" height="2rem" />
                   <div className="flex gap-2">
                     <Skeleton width="100%" height="2rem" />
-                    <Skeleton width="100%" height="2rem" />
-                    <Skeleton width="100%" height="2rem" />
+                    <Skeleton width="20%" height="2rem" />
                   </div>
                 </div>
               </Card>
@@ -308,115 +329,92 @@ const PendingSalesReport = () => {
   return (
     <div className="flex flex-column p-3 lg:p-5" style={{ maxWidth: '1200px', margin: '0 auto' }}>
       {isSaving && <FullPageLoader />}
-      
-      <div className="flex flex-column md:flex-row justify-content-between align-items-start md:align-items-center mb-4 gap-3">
-        <h2 className="text-2xl m-0">Pending Sales Orders Report</h2>
-        <span className="p-input-icon-left p-input-icon-right w-full">
-          <i className="pi pi-search" />
-          <InputText 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search"
-            className="w-full"
-          />
-
-          {loading && debouncedSearchTerm ? (
-            <i className="pi pi-spin pi-spinner" />
-          ) : searchTerm ? (
-            <i 
-              className="pi pi-times cursor-pointer" 
-              onClick={() => {
-                setSearchTerm('');
-              }}
+        <div className="flex flex-column md:flex-row justify-content-between align-items-start md:align-items-center mb-4 gap-3">
+          <h2 className="text-2xl m-0">Pending Sales Orders Report</h2>
+          <span className="p-input-icon-left p-input-icon-right w-full">
+            <i className="pi pi-search" />
+            <InputText 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search"
+              className="w-full"
             />
-          ) : null}
-        </span>
-      </div>
-      
-      <div className="grid">
+
+            {loading && debouncedSearchTerm ? (
+              <i className="pi pi-spin pi-spinner" />
+            ) : searchTerm ? (
+              <i 
+                className="pi pi-times cursor-pointer" 
+                onClick={() => {
+                  setSearchTerm('');
+                }}
+              />
+            ) : null}
+          </span>
+        </div>
+      <div>
         {orders.length > 0 ? (
           orders.map((item, index) => (
             <div 
               key={`${item.order_id}-${item.id}`} 
               className="col-12 md:col-6 lg:col-4"
               ref={index === orders.length - 1 ? lastOrderRef : null}
+              style={{ minWidth: 280}}
             >
-              <Card className="h-full">
-                <div className="flex flex-column gap-2">
-                  <div className="flex justify-content-between align-items-center">
-                    <span className="font-bold">{item.customerName}</span>
-                    <Tag 
-                      value={item.status}
-                      severity={getStatusSeverity(item.status)} 
-                    />
+            <Card className="shadow-2 border-round-xl p-3" 
+              style={{border: "2px solid #d3bfa8"}} 
+              onPointerDown={(e) => onPointerDown(e, item)}
+              onPointerUp={(e) => onPointerUp(e, item)}
+              onContextMenu={(e) => e.preventDefault()}
+              >
+                <div className="flex justify-content-between align-items-center mb-3">
+                  <div className="flex align-items-center gap-2">
+                    <Avatar label={item.customerName?.charAt(0)} style={{backgroundColor:"#e6d6c4", border: "2px solid #d3bfa8"}} size="xlarge" shape="square" />
+                    <div>
+                      
+                      <div className="text-lg font-medium"><span className="pi pi-user"></span> {item.customerName}</div>
+                      <div className="text-sm text-color-secondary">Order No: {item.order_id}</div>
+                    </div>
                   </div>
-                  
-                  <Divider className="my-2" />
-                  
-                  <div className="flex flex-column gap-1">
+                  <Tag value={item.status || 'Stitching'} severity="secondary" />
+                </div>
+
+                <div className='flex justify-content-between'>
+                  <div className="text-md font-semibold mb-2">{item.productName}</div>
+                  <Tag 
+                    value={item.status}
+                    severity={getStatusSeverity(item.status)} 
+                    className="mb-3"
+                    rounded
+                    />
+                </div>
+
+                <Divider className="my-2" />
+
+                <div className="text-sm mb-3">
+                  <div className='flex justify-content-between mb-3'>
                     <div className="flex justify-content-between">
-                      <span className="text-600">Product:</span>
-                      <span>{item.productName}</span>
+                      <span><i className="pi pi-calendar mr-2"></i>Trial:</span>
+                      <span></span>
                     </div>
                     <div className="flex justify-content-between">
-                      <span className="text-600">Reference:</span>
-                      <span>{item.productRef}</span>
-                    </div>
-                    <div className="flex justify-content-between">
-                      <span className="text-600">Delivery Date:</span>
+                      <span><i className="pi pi-calendar mr-2"></i>Delivery:</span>
                       <span>{item.deliveryDate ? formatDate(item.deliveryDate) : 'Not scheduled'}</span>
                     </div>
-                    <div className="flex justify-content-between">
-                      <span className="text-600">JO Status:</span>
-                     <Tag 
-                        value={item.jobOrderStatus.length > 0 
-                          ? item.jobOrderStatus[0].status_name
-                          : 'Pending'}
-                        severity={getStatusSeverity(item.jobOrderStatus.length > 0 
-                          ? item.jobOrderStatus[0].status_name 
-                          : 'Pending')}
-                      />
-                    </div>
                   </div>
-                  
-                  <Divider className="my-2" />
-                  
-                  <div className="flex flex-column gap-2 mt-3">
-                    <Button 
-                      label={item.jobOrderStatus.length > 0 ? 'View Job Order' : 'Create Job Order'}
-                      icon={item.jobOrderStatus.length > 0 ? 'pi pi-eye' : 'pi pi-plus'}
-                      onClick={() => handleCreateViewJO(item)}
-                      className={`w-full ${item.jobOrderStatus.length > 0 ? 'p-button-info' : 'p-button-warning'}`}
-                    />
-                    
-                    <Button
-                        label="Change Status"
-                        icon="pi pi-cog"
-                        onClick={() => openStatusChangeDialog(item)}
-                        className="w-full p-button-secondary"
-                    />
-                
-                    <div className="flex gap-2">
-                        <Button 
-                            label="View Sales Order"
-                            icon="pi pi-eye"
-                            onClick={() => viewSalesOrder(item.order_id)}
-                            className="w-full"
-                        />
-                        <Button 
-                            icon="pi pi-trash"
-                            onClick={() => confirmDelete(item)}
-                            className="p-button-danger"
-                            style={{ width: '20%' }}
-                            disabled={item.jobOrderStatus.length > 0 && 
-                              item.jobOrderStatus[item.jobOrderStatus.length - 1].status_name === 'Completed'}
-                        />
+                  <div className='flex justify-content-between'>
+                    <div className="flex justify-content-between">
+                      <span><i className="pi pi-calendar mr-2"></i>Received:</span>
+                      <span>{item.deliveryDate ? formatDate(item.deliveryDate) : 'Not scheduled'}</span>
                     </div>
                   </div>
                 </div>
+                      
+                <Divider className="my-2" />
               </Card>
+
             </div>
-          ))
+            ))
         ) : (
           <div className="col-12">
             <div className="p-4 text-center surface-100 border-round">
@@ -425,6 +423,46 @@ const PendingSalesReport = () => {
             </div>
           </div>
         )}
+
+        <OverlayPanel ref={actionPanelRef}>
+            {selectedItem && (
+              <div className="flex flex-column gap-2" style={{ minWidth: '200px' }}>
+                <Button
+                  label={selectedItem.jobOrderStatus.length > 0 ? 'View Job Order' : 'Create Job Order'}
+                  icon={selectedItem.jobOrderStatus.length > 0 ? 'pi pi-eye' : 'pi pi-plus'}
+                  onClick={() => {
+                    handleCreateViewJO(selectedItem);
+                    actionPanelRef.current.hide();
+                  }}
+                  className={`w-full ${selectedItem.jobOrderStatus.length > 0 ? 'p-button-info' : 'p-button-warning'}`}
+                />
+
+                <Button
+                  label="Change Status"
+                  icon="pi pi-cog"
+                  onClick={() => {
+                    openStatusChangeDialog(selectedItem);
+                    actionPanelRef.current.hide();
+                  }}
+                  className="w-full p-button-secondary"
+                />
+
+                <Button
+                  icon="pi pi-trash"
+                  label="Delete"
+                  onClick={() => {
+                    confirmDelete(selectedItem);
+                    actionPanelRef.current.hide();
+                  }}
+                  className="w-full p-button-danger"
+                  disabled={
+                    selectedItem.jobOrderStatus.length > 0 &&
+                    selectedItem.jobOrderStatus[selectedItem.jobOrderStatus.length - 1].status_name === 'Completed'
+                  }
+                />
+              </div>
+            )}
+          </OverlayPanel>
       </div>
 
       {isFetchingMore && (
